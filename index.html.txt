@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Success Block Blast Premium</title>
+    <style>
+        :root { --bg: #030712; --panel: #111827; --neon: #22d3ee; }
+        body { background: var(--bg); color: white; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; touch-action: none; display: flex; flex-direction: column; align-items: center; }
+        #ui { width: 100%; max-width: 400px; display: flex; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+        .stat { text-align: center; }
+        .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; }
+        .val { font-size: 28px; font-weight: 800; color: var(--neon); }
+        canvas { background: var(--panel); border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); cursor: grab; }
+        #ad-box { position: fixed; bottom: 0; width: 100%; height: 50px; background: #000; border-top: 1px solid #333; display: flex; align-items: center; justify-content: center; color: #444; font-size: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="stat"><div class="label">Best</div><div class="val">520</div></div>
+        <div class="stat"><div class="label">Score</div><div class="val" id="score">0</div></div>
+    </div>
+
+    <canvas id="game"></canvas>
+
+    <div id="ad-box">Banner: ca-app-pub-9862002985603972/9278024171</div>
+
+    <script>
+        const AD_IDS = { 
+            banner: "ca-app-pub-9862002985603972/9278024171", 
+            interstitial: "ca-app-pub-9862002985603972/2583481675" 
+        };
+
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        let score = 0;
+
+        // Settings
+        const gridRes = 8;
+        const padding = 10;
+        let tileSize, boardWidth;
+
+        function resize() {
+            boardWidth = Math.min(window.innerWidth - 40, 400);
+            canvas.width = boardWidth;
+            canvas.height = boardWidth + 160; // Extra space for pieces
+            tileSize = (boardWidth - (padding * 2)) / gridRes;
+        }
+
+        let board = Array(gridRes).fill().map(() => Array(gridRes).fill(0));
+        
+        // Mock Shapes
+        const shapes = [
+            { color: '#22d3ee', map: [[1,1],[1,1]] },
+            { color: '#818cf8', map: [[1,1,1,1]] },
+            { color: '#fb7185', map: [[1,1,1],[0,1,0]] }
+        ];
+
+        let dock = [];
+        function fillDock() {
+            dock = [0,1,2].map(i => ({
+                ...shapes[Math.floor(Math.random() * shapes.length)],
+                x: (boardWidth / 3) * i + 20,
+                y: boardWidth + 40,
+                originalX: (boardWidth / 3) * i + 20,
+                originalY: boardWidth + 40,
+                active: true
+            }));
+        }
+
+        let drag = null;
+        canvas.addEventListener('touchstart', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const tx = e.touches[0].clientX - rect.left;
+            const ty = e.touches[0].clientY - rect.top;
+            
+            dock.forEach(p => {
+                if (p.active && tx > p.x && ty > p.y && ty < p.y + 80) {
+                    drag = p;
+                    p.ox = tx - p.x;
+                    p.oy = ty - p.y;
+                }
+            });
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!drag) return;
+            const rect = canvas.getBoundingClientRect();
+            drag.x = e.touches[0].clientX - rect.left - drag.ox;
+            drag.y = e.touches[0].clientY - rect.top - drag.oy;
+            render();
+        });
+
+        canvas.addEventListener('touchend', () => {
+            if (!drag) return;
+            // Snap logic would go here
+            drag.x = drag.originalX;
+            drag.y = drag.originalY;
+            drag = null;
+            render();
+        });
+
+        function render() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            // Draw Grid
+            for(let y=0; y<gridRes; y++) {
+                for(let x=0; x<gridRes; x++) {
+                    ctx.fillStyle = '#1f2937';
+                    ctx.beginPath();
+                    ctx.roundRect(padding + x*tileSize + 2, padding + y*tileSize + 2, tileSize-4, tileSize-4, 6);
+                    ctx.fill();
+                }
+            }
+            // Draw Dock
+            dock.forEach(p => {
+                if(!p.active) return;
+                ctx.fillStyle = p.color;
+                p.map.forEach((row, ri) => {
+                    row.forEach((v, ci) => {
+                        if(v) {
+                            ctx.beginPath();
+                            const s = drag === p ? tileSize : tileSize * 0.6;
+                            ctx.roundRect(p.x + ci*s, p.y + ri*s, s-2, s-2, 4);
+                            ctx.fill();
+                        }
+                    });
+                });
+            });
+        }
+
+        resize();
+        fillDock();
+        render();
+    </script>
+</body>
+</html>
